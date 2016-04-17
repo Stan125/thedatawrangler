@@ -48,14 +48,24 @@ ui <- miniPage(
   miniTabstripPanel(
     miniTabPanel("Data", icon = icon("folder-open"),
                  miniContentPanel(
-                   selectInput(label = "Select your dataset:",
-                               inputId = "dataset",
-                               choices = c("", search_df())),
-                   selectInput("group",
-                               "Select variable for grouping",
-                               choices = c("A categorial variable")),
-                   actionButton("update_group", "Perform grouping",
-                                class = "btn btn-primary btn-sm action-button")
+                   fillCol(
+                     fillCol(
+                       selectInput(label = "Select your dataset:",
+                                   inputId = "dataset",
+                                   choices = c("", search_df())),
+                       actionButton("update_df", "Update dataframe",
+                                    class = "btn btn-primary btn-sm action-button",
+                                    style = "float:left")
+                     ),
+                     fillCol(
+                       selectInput("group",
+                                   "Select variable for grouping:",
+                                   choices = c("A categorial variable")),
+                       actionButton("update_group", "Perform grouping",
+                                    class = "btn btn-primary btn-sm action-button",
+                                    style = "float:left")
+                     )
+                   )
                  )
     ),
     miniTabPanel("Reshape", icon = icon("exchange")
@@ -67,13 +77,40 @@ ui <- miniPage(
     miniTabPanel("Summarise", icon = icon("compress")
                  # Content Tab 4
     ),
-    miniTabPanel("Preview", icon = icon("table")
-                 # Content Tab 3
+    miniTabPanel("Preview", icon = icon("table"),
+                 DT::dataTableOutput("previewtable")
     )
   )
 )
 
 server <- function(input, output, session) {
+  
+  # Start with iris DF
+  preview <- data.frame(iris)
+  
+  # Check whether dataset was chosen
+  dataset <- reactive({validate(
+    need(input$dataset != "", "Please pick a dataset")
+  )
+    input$dataset
+  })
+  
+  # If button is pressed update dataframe
+  preview <- eventReactive(input$update_df, {
+    get(dataset())
+  })
+  
+  # Render Preview table
+  output$previewtable <-  DT::renderDataTable({
+      preview()
+    }, options = list(autoWidth = FALSE, 
+                      paging = TRUE,
+                      searching = FALSE,
+                      info = FALSE,
+                      ordering = TRUE,
+                      processing = FALSE,
+                      scrollX = TRUE),
+    class = "cell-border stripe")
   
   observeEvent(input$done, {
     
